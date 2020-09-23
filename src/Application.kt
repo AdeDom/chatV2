@@ -10,6 +10,7 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
@@ -33,7 +34,16 @@ fun Application.module() {
     install(Routing) {
         route("api") {
             get("hello") {
-                val response = ChatResponse(true, "AdeDom")
+                val response = BaseResponse(true, "AdeDom")
+                call.respond(response)
+            }
+
+            get("fetch-chat") {
+                val chatResponse = transaction {
+                    Chats.selectAll()
+                        .map { Chats.toFetchChat(it) }
+                }
+                val response = FetchChatResponse(true, "Fetch chat success", chatResponse)
                 call.respond(response)
             }
 
@@ -47,7 +57,7 @@ fun Application.module() {
                     }
                 }
 
-                val response = ChatResponse(true, "Send message success")
+                val response = BaseResponse(true, "Send message success")
                 call.respond(response)
             }
         }

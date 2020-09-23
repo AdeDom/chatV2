@@ -1,6 +1,7 @@
 package com.chat
 
 data class ChatResponse(
-    val success: Boolean = false,
+    val chatId: Int = 0,
+    val name: String = "",
     val message: String = "",
 )
