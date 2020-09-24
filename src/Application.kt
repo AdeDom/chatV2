@@ -99,17 +99,9 @@ fun Application.module() {
                             val text = frame.readText()
                             logDebug("text : $text", 4)
                         }
-
-                        logDebug("if end", 5)
-
                     }
-
-                    logDebug("consumeEach end", 6)
-
                 } finally {
-
                     logDebug("finally", 7)
-
                 }
 
                 logDebug("end", 8)
