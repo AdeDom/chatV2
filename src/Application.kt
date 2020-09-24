@@ -93,8 +93,6 @@ fun Application.module() {
             }
 
             webSocket("chatv3") {
-                logDebug("begin", 1)
-
                 try {
                     incoming.consumeEach { frame ->
 
