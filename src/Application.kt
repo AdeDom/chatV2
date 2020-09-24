@@ -22,7 +22,8 @@ fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
 fun Application.module() {
     val config = HikariConfig().apply {
-        jdbcUrl = "jdbc:mysql://bc162b7210edb9:dae67b90@us-cdbr-east-05.cleardb.net/heroku_1393de2d66fc96b?reconnect=true"
+        jdbcUrl =
+            "jdbc:mysql://bc162b7210edb9:dae67b90@us-cdbr-east-05.cleardb.net/heroku_1393de2d66fc96b?reconnect=true"
         driverClassName = "com.mysql.cj.jdbc.Driver"
         username = "bc162b7210edb9"
         password = "dae67b90"
@@ -91,10 +92,20 @@ fun Application.module() {
             }
 
             webSocket("chatv3") {
+                logDebug(1)
+
                 val frame = incoming.receive()
+
+                logDebug(2)
+
                 if (frame is Frame.Text) {
+                    logDebug(3)
+
 //                    // incoming
                     val text = frame.readText()
+
+                    logDebug(4)
+
                     val request = Gson().fromJson(text, SendMessageRequest::class.java)
 
 //                    // database
@@ -106,10 +117,21 @@ fun Application.module() {
 //                    }
 //
 //                    // outgoing
+
+                    logDebug(5)
+
                     val chat = ChatResponse(name = request.name, message = request.message)
+
+                    logDebug(6)
+
                     val response = Gson().toJson(chat)
+
+                    logDebug(7)
+
                     outgoing.send(Frame.Text(response))
                 }
+
+                logDebug(8)
 
                 var num = 0
                 while (num < 10) {
@@ -122,7 +144,15 @@ fun Application.module() {
                     delay(15_000)
                 }
 
+                logDebug(9)
+
             }
         }
     }
+}
+
+private suspend fun DefaultWebSocketServerSession.logDebug(num: Int) {
+    val chat = ChatResponse(name = "LOG", message = "debug...$num")
+    val response = Gson().toJson(chat)
+    outgoing.send(Frame.Text(response))
 }
