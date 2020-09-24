@@ -92,24 +92,16 @@ fun Application.module() {
             }
 
             webSocket("chatv3") {
-                val frame = incoming.receive()
-                if (frame is Frame.Text) {
-//                    // incoming
-                    val text = frame.readText()
-                    val request = Gson().fromJson(text, SendMessageRequest::class.java)
-
-//                    // database
-//                    transaction {
-//                        Chats.insert {
-//                            it[name] = request.name
-//                            it[message] = request.message
-//                        }
-//                    }
-//
-//                    // outgoing
-                    val chat = ChatResponse(name = request.name, message = request.message)
-                    val response = Gson().toJson(chat)
-                    outgoing.send(Frame.Text(response))
+                for (frame in incoming) {
+                    when (frame) {
+                        is Frame.Text -> {
+                            val text = frame.readText()
+                            outgoing.send(Frame.Text("YOU SAID: $text"))
+                            if (text.equals("bye", ignoreCase = true)) {
+                                close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
+                            }
+                        }
+                    }
                 }
             }
         }
