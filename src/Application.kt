@@ -12,6 +12,8 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.receiveAsFlow
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
@@ -87,6 +89,29 @@ fun Application.module() {
                     outgoing.send(text1)
 
                     delay(15_000)
+                }
+            }
+
+            webSocket("chatv3") {
+                incoming.receiveAsFlow().apply {
+                    collect { frame ->
+                        // incoming
+                        val text = (frame as Frame.Text).readText()
+                        val request = Gson().fromJson(text, SendMessageRequest::class.java)
+
+                        // database
+                        transaction {
+                            Chats.insert {
+                                it[name] = request.name
+                                it[message] = request.message
+                            }
+                        }
+
+                        // outgoing
+                        val chat = ChatResponse(name = request.name, message = request.message)
+                        val response = Gson().toJson(chat)
+                        outgoing.send(Frame.Text(response))
+                    }
                 }
             }
         }
