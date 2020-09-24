@@ -46,4 +46,6 @@ dependencies {
     implementation "mysql:mysql-connector-java:8.0.19"
     implementation "com.zaxxer:HikariCP:3.4.2"
 
+    implementation "io.ktor:ktor-websockets:$ktor_version"
+
 }
