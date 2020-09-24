@@ -11,6 +11,7 @@ import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.websocket.*
+import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.delay
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.insert
@@ -92,18 +93,40 @@ fun Application.module() {
             }
 
             webSocket("chatv3") {
-                for (frame in incoming) {
-                    when (frame) {
-                        is Frame.Text -> {
+                logDebug("begin", 1)
+
+                try {
+                    incoming.consumeEach { frame ->
+
+                        logDebug("consumeEach", 2)
+
+                        if (frame is Frame.Text) {
+
+                            logDebug("if", 3)
+
                             val text = frame.readText()
-                            outgoing.send(Frame.Text("YOU SAID: $text"))
-                            if (text == "bye") {
-                                close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
-                            }
+
+                            logDebug("text : $text", 4)
                         }
+
+                        logDebug("if end", 5)
+
                     }
+
+                    logDebug("consumeEach end", 6)
+
+                } finally {
+
+                    logDebug("finally", 7)
+
                 }
+
+                logDebug("end", 8)
             }
         }
     }
+}
+
+private suspend fun DefaultWebSocketServerSession.logDebug(text: String, num: Int) {
+    outgoing.send(Frame.Text("logDebug : $text -> $num"))
 }
