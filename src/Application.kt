@@ -93,23 +93,18 @@ fun Application.module() {
             }
 
             webSocket("chatv3") {
-                try {
-                    incoming.consumeEach { frame ->
-                        if (frame is Frame.Text) {
+                for (frame in incoming) {
+                    when (frame) {
+                        is Frame.Text -> {
                             val text = frame.readText()
-                            logDebug("text : $text", 4)
+                            if (text == "bye") {
+                                close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
+                            }
+                            outgoing.send(Frame.Text("YOU SAID: $text"))
                         }
                     }
-                } finally {
-                    logDebug("finally", 7)
                 }
-
-                logDebug("end", 8)
             }
         }
     }
-}
-
-private suspend fun DefaultWebSocketServerSession.logDebug(text: String, num: Int) {
-    outgoing.send(Frame.Text("logDebug : $text -> $num"))
 }
