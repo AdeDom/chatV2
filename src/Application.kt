@@ -1,5 +1,6 @@
 package com.chat
 
+import com.google.gson.Gson
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.application.*
@@ -75,12 +76,16 @@ fun Application.module() {
 
         route("webSocket") {
             webSocket("chatv2") {
-                val text1 = Frame.Text("outgoing.send -> YOU SAID: webSocket chatv2 test")
-                val text2 = Frame.Text("send -> YOU SAID: webSocket chatv2 test")
-
+                var num = 0
                 while (true) {
+                    num++
+
+                    val chat = ChatResponse(num, "BOT", "Welcome web socket...")
+                    val json = Gson().toJson(chat)
+
+                    val text1 = Frame.Text(json)
                     outgoing.send(text1)
-                    send(text2)
+
                     delay(15_000)
                 }
             }
