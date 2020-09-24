@@ -95,7 +95,7 @@ fun Application.module() {
                 val frame = incoming.receive()
                 if (frame is Frame.Text) {
                     // incoming
-                    val request = frame.fromJson<SendMessageRequest>()
+                    val request = frame.readText().fromJson<SendMessageRequest>()
 
 //                    // database
 //                    transaction {
@@ -107,7 +107,7 @@ fun Application.module() {
 
                     // outgoing
                     val response = ChatResponse(name = request.name, message = request.message).toJson()
-                    outgoing.send(response)
+                    outgoing.send(Frame.Text(response))
                 }
             }
         }
