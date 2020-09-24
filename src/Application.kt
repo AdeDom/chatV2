@@ -12,8 +12,6 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.receiveAsFlow
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
@@ -93,25 +91,24 @@ fun Application.module() {
             }
 
             webSocket("chatv3") {
-                incoming.receiveAsFlow().apply {
-                    collect { frame ->
-                        // incoming
-                        val text = (frame as Frame.Text).readText()
-                        val request = Gson().fromJson(text, SendMessageRequest::class.java)
+                val frame = incoming.receive()
+                if (frame is Frame.Text) {
+                    // incoming
+                    val text = frame.readText()
+                    val request = Gson().fromJson(text, SendMessageRequest::class.java)
 
-                        // database
-                        transaction {
-                            Chats.insert {
-                                it[name] = request.name
-                                it[message] = request.message
-                            }
+                    // database
+                    transaction {
+                        Chats.insert {
+                            it[name] = request.name
+                            it[message] = request.message
                         }
-
-                        // outgoing
-                        val chat = ChatResponse(name = request.name, message = request.message)
-                        val response = Gson().toJson(chat)
-                        outgoing.send(Frame.Text(response))
                     }
+
+                    // outgoing
+                    val chat = ChatResponse(name = request.name, message = request.message)
+                    val response = Gson().toJson(chat)
+                    outgoing.send(Frame.Text(response))
                 }
             }
         }
