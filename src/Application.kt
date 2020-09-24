@@ -92,19 +92,19 @@ fun Application.module() {
             }
 
             webSocket("chatv3") {
-                logDebug(1)
+//                logDebug(1)
 
                 val frame = incoming.receive()
 
-                logDebug(2)
+//                logDebug(2)
 
                 if (frame is Frame.Text) {
-                    logDebug(3)
+//                    logDebug(3)
 
 //                    // incoming
                     val text = frame.readText()
 
-                    logDebug(4)
+//                    logDebug(4)
 
                     val request = Gson().fromJson(text, SendMessageRequest::class.java)
 
@@ -118,15 +118,15 @@ fun Application.module() {
 //
 //                    // outgoing
 
-                    logDebug(5)
+//                    logDebug(5)
 
                     val chat = ChatResponse(name = request.name, message = request.message)
 
-                    logDebug(6)
+//                    logDebug(6)
 
                     val response = Gson().toJson(chat)
 
-                    logDebug(7)
+//                    logDebug(7)
 
                     outgoing.send(Frame.Text(response))
                 }
