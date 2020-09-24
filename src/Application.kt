@@ -95,15 +95,8 @@ fun Application.module() {
             webSocket("chatv3") {
                 try {
                     incoming.consumeEach { frame ->
-
-                        logDebug("consumeEach", 2)
-
                         if (frame is Frame.Text) {
-
-                            logDebug("if", 3)
-
                             val text = frame.readText()
-
                             logDebug("text : $text", 4)
                         }
 
