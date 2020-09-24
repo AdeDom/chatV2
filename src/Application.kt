@@ -97,7 +97,7 @@ fun Application.module() {
                         is Frame.Text -> {
                             val text = frame.readText()
                             outgoing.send(Frame.Text("YOU SAID: $text"))
-                            if (text.equals("bye", ignoreCase = true)) {
+                            if (text == "bye") {
                                 close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
                             }
                         }
