@@ -110,6 +110,12 @@ fun Application.module() {
                     val response = Gson().toJson(chat)
                     outgoing.send(Frame.Text(response))
                 }
+
+                val chat = ChatResponse(name = "XXX", message = "OOO")
+                val response = Gson().toJson(chat)
+                outgoing.send(Frame.Text(response))
+                outgoing.send(Frame.Text(response))
+                outgoing.send(Frame.Text(response))
             }
         }
     }
