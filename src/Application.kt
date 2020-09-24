@@ -92,20 +92,10 @@ fun Application.module() {
             }
 
             webSocket("chatv3") {
-//                logDebug(1)
-
                 val frame = incoming.receive()
-
-//                logDebug(2)
-
                 if (frame is Frame.Text) {
-//                    logDebug(3)
-
 //                    // incoming
                     val text = frame.readText()
-
-//                    logDebug(4)
-
                     val request = Gson().fromJson(text, SendMessageRequest::class.java)
 
 //                    // database
@@ -117,42 +107,11 @@ fun Application.module() {
 //                    }
 //
 //                    // outgoing
-
-//                    logDebug(5)
-
                     val chat = ChatResponse(name = request.name, message = request.message)
-
-//                    logDebug(6)
-
-                    val response = Gson().toJson(chat)
-
-//                    logDebug(7)
-
-                    outgoing.send(Frame.Text(response))
-                }
-
-                logDebug(8)
-
-                var num = 0
-                while (num < 10) {
-                    num++
-
-                    val chat = ChatResponse(name = "XXX", message = "OOO...$num")
                     val response = Gson().toJson(chat)
                     outgoing.send(Frame.Text(response))
-
-                    delay(15_000)
                 }
-
-                logDebug(9)
-
             }
         }
     }
-}
-
-private suspend fun DefaultWebSocketServerSession.logDebug(num: Int) {
-    val chat = ChatResponse(name = "LOG", message = "debug...$num")
-    val response = Gson().toJson(chat)
-    outgoing.send(Frame.Text(response))
 }
