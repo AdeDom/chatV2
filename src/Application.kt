@@ -14,6 +14,8 @@ import io.ktor.sessions.*
 import io.ktor.util.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.receiveAsFlow
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
@@ -39,7 +41,12 @@ fun Application.module() {
         }
     }
 
-    install(WebSockets)
+    install(WebSockets) {
+        pingPeriod = Duration.ofSeconds(60)
+//        timeout = Duration.ofSeconds(15)
+//        maxFrameSize = Long.MAX_VALUE
+//        masking = false
+    }
 
     install(Sessions) {
         cookie<ChatSession>("SESSION")
@@ -49,6 +56,8 @@ fun Application.module() {
             call.sessions.set(ChatSession(generateNonce()))
         }
     }
+
+    val list = mutableListOf<WebSocketSession>()
 
     install(Routing) {
         route("api") {
@@ -103,14 +112,25 @@ fun Application.module() {
             }
 
             webSocket("chatv3") {
-                val frame = incoming.receive()
-                if (frame is Frame.Text) {
-                    // incoming
-                    val request = frame.fromJson<SendMessageRequest>()
+                val session = call.sessions.get<ChatSession>()
+                if (session == null) {
+                    close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "No session"))
+                    return@webSocket
+                }
 
-                    // outgoing
-                    val response = ChatResponse(name = request.name, message = request.message).toJson()
-                    outgoing.send(response)
+                list.add(this)
+
+                incoming.receiveAsFlow().apply {
+                    collect { frame ->
+                        if (frame is Frame.Text) {
+                            val request = frame.fromJson<SendMessageRequest>()
+
+                            list.forEach { _ ->
+                                val response = ChatResponse(name = request.name, message = request.message).toJson()
+                                outgoing.send(response)
+                            }
+                        }
+                    }
                 }
             }
         }
