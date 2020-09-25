@@ -90,10 +90,14 @@ fun Application.module() {
             webSocket("chatv2") {
                 val session = call.sessions.get<ChatSession>()
 
-                while (true) {
-                    val num = if (session == null) 888 else 999
+                var num = 0
 
-                    val chat = ChatResponse(num, "BOT", "Welcome web socket...$num")
+                while (true) {
+                    num++
+
+                    val sessionId = session?.id ?: "session_null"
+
+                    val chat = ChatResponse(num, "BOT", "Welcome web socket $num...$sessionId")
                     val json = Gson().toJson(chat)
 
                     val text1 = Frame.Text(json)
