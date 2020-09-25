@@ -13,7 +13,6 @@ import io.ktor.routing.*
 import io.ktor.sessions.*
 import io.ktor.util.*
 import io.ktor.websocket.*
-import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -132,28 +131,17 @@ fun Application.module() {
                     }
                 }
             }
-        }
-    }
 
-    routing {
-        webSocket("/ws") {
-            val session = call.sessions.get<ChatSession>()
-
-            if (session == null) {
-                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "No session"))
-                return@webSocket
-            }
-
-            server.memberJoin(session.id, this)
-
-            try {
-                incoming.consumeEach { frame ->
-                    if (frame is Frame.Text) {
-                        receivedMessage(session.id, frame.readText())
-                    }
+            webSocket("dru-chat") {
+                val session = call.sessions.get<ChatSession>()
+                if (session == null) {
+                    close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "No session"))
+                    return@webSocket
                 }
-            } finally {
-                server.memberLeft(session.id, this)
+
+                incoming.receiveAsFlow().collect { frame ->
+                    receivedMessage(session.id, (frame as Frame.Text).readText())
+                }
             }
         }
     }
