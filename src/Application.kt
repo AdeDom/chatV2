@@ -1,6 +1,5 @@
 package com.chat
 
-import com.google.gson.Gson
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.application.*
@@ -10,11 +9,8 @@ import io.ktor.jackson.*
 import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
-import io.ktor.sessions.*
-import io.ktor.util.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.channels.ClosedSendChannelException
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.receiveAsFlow
 import org.jetbrains.exposed.sql.Database
@@ -52,17 +48,6 @@ fun Application.module() {
         pingPeriod = Duration.ofSeconds(60)
     }
 
-    install(Sessions) {
-        cookie<ChatSession>("SESSION")
-    }
-    intercept(ApplicationCallPipeline.Features) {
-        if (call.sessions.get<ChatSession>() == null) {
-            call.sessions.set(ChatSession(generateNonce()))
-        }
-    }
-
-    val list = mutableListOf<WebSocketSession>()
-
     install(Routing) {
         route("api") {
             get("hello") {
@@ -95,67 +80,17 @@ fun Application.module() {
         }
 
         route("webSocket") {
-            webSocket("chatv2") {
-                val session = call.sessions.get<ChatSession>()
-                if (session == null) {
-                    close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "No session"))
-                    return@webSocket
-                }
-
-                var num = 0
-                while (true) {
-                    num++
-                    val chat = ChatResponse(num, "BOT", "Welcome web socket $num...${session.id}")
-                    val json = Gson().toJson(chat)
-
-                    val text1 = Frame.Text(json)
-                    outgoing.send(text1)
-
-                    delay(15_000)
-                }
-            }
-
-            webSocket("chatv3") {
-                val session = call.sessions.get<ChatSession>()
-                if (session == null) {
-                    close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "No session"))
-                    return@webSocket
-                }
-
-                list.add(this)
-
-                incoming.receiveAsFlow().collect { frame ->
-                    val request = (frame as Frame.Text).fromJson<SendMessageRequest>()
-
-                    list.forEach { _ ->
-                        val message = "${list.count()} : " + request.message
-                        val response = ChatResponse(name = session.id, message = message)
-                        val json = Gson().toJson(response)
-                        outgoing.send(Frame.Text(json))
-                        send(Frame.Text(json).copy())
-                    }
-                }
-            }
-
             webSocket("dru-chat") {
-                val session = call.sessions.get<ChatSession>()
-                if (session == null) {
-                    close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "No session"))
-                    return@webSocket
-                }
-
-                server.memberJoin(session.id, this)
+                server.memberJoin("999", this)
 
                 incoming.receiveAsFlow().collect { frame ->
-                    receivedMessage(session.id, (frame as Frame.Text).readText())
+                    receivedMessage("999", (frame as Frame.Text).readText())
                 }
             }
         }
     }
 
 }
-
-data class ChatSession(val id: String)
 
 private suspend fun receivedMessage(id: String, command: String) {
     when {
@@ -213,16 +148,6 @@ class ChatServer {
     suspend fun memberRenamed(member: String, to: String) {
         val oldName = memberNames.put(member, to) ?: member
         broadcast("server", "Member renamed from $oldName to $to")
-    }
-
-    suspend fun memberLeft(member: String, socket: WebSocketSession) {
-        val connections = members[member]
-        connections?.remove(socket)
-
-        if (connections != null && connections.isEmpty()) {
-            val name = memberNames.remove(member) ?: member
-            broadcast("server", "Member left: $name.")
-        }
     }
 
     suspend fun who(sender: String) {
