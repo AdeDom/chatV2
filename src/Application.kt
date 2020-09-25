@@ -10,6 +10,7 @@ import io.ktor.jackson.*
 import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
+import io.ktor.sessions.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.delay
 import org.jetbrains.exposed.sql.Database
@@ -42,6 +43,10 @@ fun Application.module() {
         timeout = Duration.ofSeconds(15)
         maxFrameSize = Long.MAX_VALUE
         masking = false
+    }
+
+    install(Sessions) {
+        cookie<ChatSession>("SESSION")
     }
 
     install(Routing) {
@@ -77,11 +82,12 @@ fun Application.module() {
 
         route("webSocket") {
             webSocket("chatv2") {
-                var num = 0
-                while (true) {
-                    num++
+                val session = call.sessions.get<ChatSession>()
 
-                    val chat = ChatResponse(num, "BOT", "Welcome web socket...")
+                while (true) {
+                    val num = if (session == null) 888 else 999
+
+                    val chat = ChatResponse(num, "BOT", "Welcome web socket...$num")
                     val json = Gson().toJson(chat)
 
                     val text1 = Frame.Text(json)
@@ -97,14 +103,6 @@ fun Application.module() {
                     // incoming
                     val request = frame.fromJson<SendMessageRequest>()
 
-//                    // database
-//                    transaction {
-//                        Chats.insert {
-//                            it[name] = request.name
-//                            it[message] = request.message
-//                        }
-//                    }
-
                     // outgoing
                     val response = ChatResponse(name = request.name, message = request.message).toJson()
                     outgoing.send(response)
@@ -113,3 +111,5 @@ fun Application.module() {
         }
     }
 }
+
+data class ChatSession(val id: String)
