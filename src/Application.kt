@@ -120,16 +120,15 @@ fun Application.module() {
 
                 list.add(this)
 
-                incoming.receiveAsFlow().apply {
-                    collect { frame ->
-                        if (frame is Frame.Text) {
-                            val request = frame.fromJson<SendMessageRequest>()
+                incoming.receiveAsFlow().collect { frame ->
+                    val request = (frame as Frame.Text).fromJson<SendMessageRequest>()
 
-                            list.forEach { _ ->
-                                val response = ChatResponse(name = request.name, message = request.message).toJson()
-                                outgoing.send(response)
-                            }
-                        }
+                    list.forEach { _ ->
+                        val message = "${list.count()} : " + request.message
+                        val response = ChatResponse(name = session.id, message = message)
+                        val json = Gson().toJson(response)
+                        outgoing.send(Frame.Text(json))
+                        send(Frame.Text(json).copy())
                     }
                 }
             }
