@@ -13,6 +13,7 @@ import io.ktor.routing.*
 import io.ktor.sessions.*
 import io.ktor.util.*
 import io.ktor.websocket.*
+import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -139,8 +140,14 @@ fun Application.module() {
                     return@webSocket
                 }
 
-                incoming.receiveAsFlow().collect { frame ->
-                    receivedMessage(session.id, (frame as Frame.Text).readText())
+                server.memberJoin(session.id, this)
+
+                try {
+                    incoming.receiveAsFlow().collect { frame ->
+                        receivedMessage(session.id, (frame as Frame.Text).readText())
+                    }
+                } finally {
+                    server.memberLeft(session.id, this)
                 }
             }
         }
