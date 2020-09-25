@@ -11,6 +11,7 @@ import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.sessions.*
+import io.ktor.util.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.delay
 import org.jetbrains.exposed.sql.Database
@@ -47,6 +48,11 @@ fun Application.module() {
 
     install(Sessions) {
         cookie<ChatSession>("SESSION")
+    }
+    intercept(ApplicationCallPipeline.Features) {
+        if (call.sessions.get<ChatSession>() == null) {
+            call.sessions.set(ChatSession(generateNonce()))
+        }
     }
 
     install(Routing) {
