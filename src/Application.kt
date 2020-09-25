@@ -39,12 +39,7 @@ fun Application.module() {
         }
     }
 
-    install(WebSockets) {
-        pingPeriod = Duration.ofSeconds(60)
-        timeout = Duration.ofSeconds(15)
-        maxFrameSize = Long.MAX_VALUE
-        masking = false
-    }
+    install(WebSockets)
 
     install(Sessions) {
         cookie<ChatSession>("SESSION")
@@ -89,15 +84,15 @@ fun Application.module() {
         route("webSocket") {
             webSocket("chatv2") {
                 val session = call.sessions.get<ChatSession>()
+                if (session == null) {
+                    close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "No session"))
+                    return@webSocket
+                }
 
                 var num = 0
-
                 while (true) {
                     num++
-
-                    val sessionId = session?.id ?: "session_null"
-
-                    val chat = ChatResponse(num, "BOT", "Welcome web socket $num...$sessionId")
+                    val chat = ChatResponse(num, "BOT", "Welcome web socket $num...${session.id}")
                     val json = Gson().toJson(chat)
 
                     val text1 = Frame.Text(json)
