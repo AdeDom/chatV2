@@ -10,12 +10,11 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.consumeAsFlow
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Duration
-import java.util.concurrent.CopyOnWriteArrayList
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
@@ -42,7 +41,7 @@ fun Application.module() {
         pingPeriod = Duration.ofSeconds(60)
     }
 
-    val members = hashMapOf<String, MutableList<WebSocketSession>>()
+    val webSocketList = mutableListOf<WebSocketSession>()
 
     install(Routing) {
         route("api") {
@@ -59,14 +58,16 @@ fun Application.module() {
         // TODO: 26/09/2563 add header by token
         route("webSocket") {
             webSocket("dru-chat") {
-                members.computeIfAbsent("-") { CopyOnWriteArrayList() }.add(this)
-
-                incoming.receiveAsFlow().collect { frame ->
-                    members.values.forEach { socket ->
-                        socket.forEach {
-                            it.outgoing.send(Frame.Text((frame as Frame.Text).readText()))
+                webSocketList.add(this)
+                try {
+                    incoming.consumeAsFlow().collect { frame ->
+                        webSocketList.forEach { socket ->
+                            val text = (frame as Frame.Text).readText()
+                            socket.outgoing.send(Frame.Text(text))
                         }
                     }
+                } finally {
+                    webSocketList.remove(this)
                 }
             }
         }
