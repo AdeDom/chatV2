@@ -62,16 +62,16 @@ fun Application.module() {
                 webSocketList.add(this)
                 try {
                     incoming.consumeAsFlow().collect { frame ->
-                        webSocketList.forEach { socket ->
-                            val request = (frame as Frame.Text).fromJson<SendMessageRequest>()
+                        val request = (frame as Frame.Text).fromJson<SendMessageRequest>()
 
-                            transaction {
-                                Chats.insert {
-                                    it[name] = request.name
-                                    it[message] = request.message
-                                }
+                        transaction {
+                            Chats.insert {
+                                it[name] = request.name
+                                it[message] = request.message
                             }
+                        }
 
+                        webSocketList.forEach { socket ->
                             val response = ChatResponse(name = request.name, message = request.message).toJson()
                             socket.outgoing.send(response)
                         }
