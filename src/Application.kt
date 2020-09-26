@@ -12,6 +12,7 @@ import io.ktor.websocket.*
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.consumeAsFlow
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Duration
@@ -62,8 +63,17 @@ fun Application.module() {
                 try {
                     incoming.consumeAsFlow().collect { frame ->
                         webSocketList.forEach { socket ->
-                            val text = (frame as Frame.Text).readText()
-                            socket.outgoing.send(Frame.Text(text))
+                            val request = (frame as Frame.Text).fromJson<SendMessageRequest>()
+
+                            transaction {
+                                Chats.insert {
+                                    it[name] = request.name
+                                    it[message] = request.message
+                                }
+                            }
+
+                            val response = ChatResponse(name = request.name, message = request.message).toJson()
+                            socket.outgoing.send(response)
                         }
                     }
                 } finally {
